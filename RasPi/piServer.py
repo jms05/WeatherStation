@@ -4,7 +4,6 @@ import datetime
 import os
 
 
-#print str(datetime.datetime.now())
 filename = "TMPRecors.mws"
 noDatabase= False
 
