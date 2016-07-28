@@ -59,12 +59,17 @@ def insert(date,insideT,outT,outH,outL,outP,outR,outWs,outWd):
 
 def mesurTemp():
 	h,t = DHT.read_retry(DHT.DHT22,pinTemp)
-	#return t
-	return 25.2
+	return t
+
+def mesurTempS():
+        h,t = DHT.read_retry(DHT.DHT22,pinTemp)
+        return str(t) + "*C " + str(h)
+
 
 def reciveFromRemote():
 	#outT,outH,outL,outP,outR,
 	#read from transmiter
+	'''
 	pipe = [0]
 	while not radio.available(pipe, True):
 		time.sleep(timeSleep)
@@ -76,8 +81,8 @@ def reciveFromRemote():
 	for b in recivedM:
 		if (b>=32 and b<=126): #ver isto aqui
 			stReci+=chr(b)
-
-#	stReci = "18.9;10;50;200.244;0"
+	'''
+	stReci = "18.9;10;50;200.244;0"
 	inte = mesurTemp();
 	ret = str(inte)+";"+stReci+";-1;-1"
 	return(ret)
@@ -134,12 +139,13 @@ def main():
 		log(e)
 
 	noDatabase= False
-	
+	'''
 	try:
 		setupReciver()
 	except Exception as e:
 		log(e)
 		raise e
+	'''
 ##	while True:
 	strRec = reciveFromRemote()
 	noDatabase =storDB(strRec,noDatabase)
@@ -147,3 +153,5 @@ def main():
 
 
 main()
+while True:
+	print "TMP: " + mesurTempS()
