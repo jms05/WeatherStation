@@ -129,7 +129,8 @@ class NRF24:
     DPL_P0 = 0
     EN_DPL = 2
     EN_ACK_PAY = 1
-    EN_DYN_ACK = 0
+	#alterei estava a 0
+    EN_DYN_ACK = 1
 
     # Instruction Mnemonics
     R_REGISTER = 0x00
@@ -612,6 +613,11 @@ class NRF24:
 
         # Enable dynamic payload on pipes 0 & 1
         self.write_register(NRF24.DYNPD, self.read_register(NRF24.DYNPD) | _BV(NRF24.DPL_P1) | _BV(NRF24.DPL_P0))
+
+    #meuCodigo
+    def enableDynamicAck(self):
+	self.write_register(NRF24.FEATURE,
+                            self.read_register(NRF24.FEATURE) | _BV(NRF24.EN_DYN_ACK) )
 
     def writeAckPayload(self, pipe, buf, buf_len):
         txbuffer = [NRF24.W_ACK_PAYLOAD | ( pipe & 0x7 )]

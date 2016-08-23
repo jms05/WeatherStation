@@ -11,10 +11,11 @@ GPIO.setmode(GPIO.BCM)
 filename = "TMPRecors.mws"
 filenameLog = "WeatherStation.log"
 noDatabase= False
-dbServer="ServerIP"
-dbUser="UserID"
-dbPassword="UserPassword"
-dbSchema"dvSchema"
+dbServer="192.168.1.192"
+dbUser="pi"
+dbPassword="pawwsord"
+dbSchema="WeatherStationDB"
+fName="tmpRecord.mws"
 
 def setupReciver():
         pipes = [[0xf0, 0xf0, 0xf0, 0xf0, 0xe1], [0xf0, 0xf0, 0xf0, 0xf0, 0xd2]]
@@ -27,20 +28,22 @@ def setupReciver():
         radioN.setPALevel(NRF24.PA_MAX)
         radioN.setCRCLength(NRF24.CRC_8);
         radioN.setAutoAck(1)
+	radioN.enableDynamicAck()
         radioN.openWritingPipe(pipes[0])
         radioN.openReadingPipe(1, pipes[1])
 
         radioN.startListening()
         radioN.stopListening()
 
-#        radioN.printDetails()
         radioN.startListening()
         return radioN
 
 
-
-
-radio = setupReciver()
+try:
+	radio= setupReciver()
+except Exception as e:
+	log(e)
+	raise e
 timeSleep=2
 pinTemp = 4
 
@@ -80,16 +83,15 @@ def mesurTempS():
 
 def reciveFromRemote():
 	#outT,outH,outL,outP,outR,
-	#read from transmiter
     	pipe = [0]
+	
 	print "Espera receber"
     	while not radio.available(pipe, True):
         	time.sleep(1000/100000.0)
-    	recv_buffer = []
+	recv_buffer = []
     	radio.read(recv_buffer)
     	out = ''.join(chr(i) for i in recv_buffer)
-    	print "Recived:" +out
-	#lico =raw_input('-->')
+    	print "Recived: " +out
 	inte = mesurTemp();
 	ret = str(inte)+";"+out+";-1;-1"
 	print "Registo: " +ret
@@ -141,6 +143,8 @@ def storDB(data,NoDB):
 
 
 def main():
+	lastInDB=0
+	delayRec=60
 	try:
 		print("Detalhes")
 		radio.printDetails()
@@ -149,26 +153,17 @@ def main():
 		log(e)
 
 	noDatabase= False
-	'''
-	try:
-		setupReciver()
-	except Exception as e:
-		log(e)
-		raise e
-	'''
 	while True:
 		strRec = reciveFromRemote()
-		noDatabase =storDB(strRec,noDatabase)
+		current_time = int(round(time.time()))
+                if(current_time>lastInDB+delayRec):
+                        lastInDB=current_time
+			print "OK"
+			noDatabase =storDB(strRec,noDatabase)
+                else:
+                        print "Muito Seguido"
 #		time.sleep(900) ##tira medicoes de 15 em 15 tirar quando entrar  ardino 
 
 
 main()
 
-#a=0
-#while True:
-#	date = str(datetime.datetime.now())
-#	tI = round(mesurTemp(),2)
-#	print "Em "+date+" TMP: " + str(tI)
-#	insert(date,tI,-999,-999,-999,-999,-999,-999,-999)
-#	print "inserido Registo"
-#	time.sleep(900) #regita de 15 em 15
