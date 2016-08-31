@@ -6,16 +6,44 @@ import os
 from nrf24 import NRF24
 import spidev
 import Adafruit_DHT as DHT
-
+import requests
 GPIO.setmode(GPIO.BCM)
+
 filename = "TMPRecors.mws"
+fName = "TMPRecors.mws"
 filenameLog = "WeatherStation.log"
 noDatabase= False
-dbServer="192.168.1.192"
-dbUser="pi"
-dbPassword="pawwsord"
-dbSchema="WeatherStationDB"
-fName="tmpRecord.mws"
+timeSleep=2
+pinTemp = 4
+
+dbServer=""
+dbUser=""
+dbPassword=""
+dbSchema=""
+
+#wunderground credentials 
+stationid = ""
+password = ""
+
+def log(exception):
+        date = str(datetime.datetime.now())
+        f=open(filenameLog,"a")
+        f.write(date+":"+str(exception)+"\n")
+        f.close()
+
+def uploadRej(time,tempC,humid):
+	temperature= tempC*1.8+32
+	timeI = str(time).split(".")[0]
+	server = "http://rtupdate.wunderground.com"
+
+	path ="/weatherstation/updateweatherstation.php?ID=" + str(stationid) + "&PASSWORD=" + str(password) + "&dateutc=" + str(timeI) + "&tempf=" + str(temperature) +"&humidity="+str(humid)+ "&softwaretype=RaspberryPi&action=updateraw"
+	res = requests.get(server+path)
+	if ((int(res.status_code) == 200) & ("success" in res.text)):
+		log("Successful Upload Temperature C=" + str(tempC) + " Humid " + str(humid))
+
+	else:
+		log("Not Successful Upload Temperature C=" + str(tempC) +" Humid " + str(humid))
+
 
 def setupReciver():
         pipes = [[0xf0, 0xf0, 0xf0, 0xf0, 0xe1], [0xf0, 0xf0, 0xf0, 0xf0, 0xd2]]
@@ -23,7 +51,7 @@ def setupReciver():
         radioN.begin(0, 0,25,18) #set gpio 25 as CE pin
         radioN.setRetries(15,15)
         radioN.setPayloadSize(32)
-        radioN.setChannel(0x4c)
+        radioN.setChannel(0x53)
         radioN.setDataRate(NRF24.BR_250KBPS)
         radioN.setPALevel(NRF24.PA_MAX)
         radioN.setCRCLength(NRF24.CRC_8);
@@ -44,16 +72,14 @@ try:
 except Exception as e:
 	log(e)
 	raise e
-timeSleep=2
-pinTemp = 4
 
-def log(exception):
-	date = str(datetime.datetime.now())
-	f=open(filenameLog,"a")
-        f.write(date+":"+str(exception)+"\n")
-        f.close()
 
 def insert(date,insideT,outT,outH,outL,outP,outR,outWs,outWd):
+	try:
+		uploadRej(date,float(outT),float(outH))
+	except Exception as e:
+		log(e)
+
 	db = MySQLdb.connect(dbServer,dbUser,dbPassword,dbSchema)
 	cursor = db.cursor()
 	sql = "INSERT INTO Record\n "
@@ -91,10 +117,9 @@ def reciveFromRemote():
 	recv_buffer = []
     	radio.read(recv_buffer)
     	out = ''.join(chr(i) for i in recv_buffer)
-    	print "Recived: " +out
+    	print "Recived at " +str(datetime.datetime.now())+" --> " + out
 	inte = mesurTemp();
 	ret = str(inte)+";"+out+";-1;-1"
-	print "Registo: " +ret
 	return(ret)
 
 
@@ -144,9 +169,8 @@ def storDB(data,NoDB):
 
 def main():
 	lastInDB=0
-	delayRec=60
+	delayRec=60*15
 	try:
-		print("Detalhes")
 		radio.printDetails()
 		insertTmpS()
 	except Exception as e:
