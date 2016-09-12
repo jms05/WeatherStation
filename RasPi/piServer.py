@@ -1,3 +1,4 @@
+
 import RPi.GPIO as GPIO
 import MySQLdb
 import time
@@ -7,29 +8,56 @@ from nrf24 import NRF24
 import spidev
 import Adafruit_DHT as DHT
 import requests
+import json
 GPIO.setmode(GPIO.BCM)
 
 filename = "TMPRecors.mws"
-fName = "TMPRecors.mws"
 filenameLog = "WeatherStation.log"
-noDatabase= False
-timeSleep=2
-pinTemp = 4
 
+
+jsonFile = "/home/pi/card.json"
+
+noDatabase= False
 dbServer=""
 dbUser=""
 dbPassword=""
 dbSchema=""
 
-#wunderground credentials 
+
+timeSleep=2
+pinTemp = 4
+
+
 stationid = ""
-password = ""
+stationPW = ""
+
+def encode(text):
+	return text.encode('utf-8')
+
+def loadJson():
+	dataFile = open(jsonFile,'r')    
+    	data = json.load(dataFile)
+	dataFile.close()
+	dbServer=encode(data["db_Server"])
+	dbUser=encode(data["db_User"])
+	dbPassword=encode(data["db_Pw"])
+	dbSchema=encode(data["db_Schema"])
+
+	
+	stationid=encode(data["Station_Id"])
+	stationPW=encode(data["Station_Pw"])
+
 
 def log(exception):
         date = str(datetime.datetime.now())
         f=open(filenameLog,"a")
         f.write(date+":"+str(exception)+"\n")
-        f.close()
+	f.close()
+try:
+	loadJson()
+except Exception as e:
+        log(e)
+        raise(e)
 
 def uploadRej(time,tempC,humid):
 	temperature= tempC*1.8+32
@@ -44,14 +72,13 @@ def uploadRej(time,tempC,humid):
 	else:
 		log("Not Successful Upload Temperature C=" + str(tempC) +" Humid " + str(humid))
 
-
 def setupReciver():
         pipes = [[0xf0, 0xf0, 0xf0, 0xf0, 0xe1], [0xf0, 0xf0, 0xf0, 0xf0, 0xd2]]
         radioN = NRF24()
         radioN.begin(0, 0,25,18) #set gpio 25 as CE pin
         radioN.setRetries(15,15)
         radioN.setPayloadSize(32)
-        radioN.setChannel(0x53)
+        radioN.setChannel(0x4c)
         radioN.setDataRate(NRF24.BR_250KBPS)
         radioN.setPALevel(NRF24.PA_MAX)
         radioN.setCRCLength(NRF24.CRC_8);
@@ -71,8 +98,8 @@ try:
 	radio= setupReciver()
 except Exception as e:
 	log(e)
+	GPIO.cleanup()
 	raise e
-
 
 def insert(date,insideT,outT,outH,outL,outP,outR,outWs,outWd):
 	try:
@@ -102,10 +129,6 @@ def mesurTemp():
 	h,t = DHT.read_retry(DHT.DHT22,pinTemp)
 	return round((t/1.0),3)
 
-def mesurTempS():
-        h,t = DHT.read_retry(DHT.DHT22,pinTemp)
-        return str(t) + "*C " + str(h)
-
 
 def reciveFromRemote():
 	#outT,outH,outL,outP,outR,
@@ -117,9 +140,10 @@ def reciveFromRemote():
 	recv_buffer = []
     	radio.read(recv_buffer)
     	out = ''.join(chr(i) for i in recv_buffer)
-    	print "Recived at " +str(datetime.datetime.now())+" --> " + out
+    	print "Recived: " +out
 	inte = mesurTemp();
 	ret = str(inte)+";"+out+";-1;-1"
+	print "Registo: " +ret
 	return(ret)
 
 
@@ -169,8 +193,9 @@ def storDB(data,NoDB):
 
 def main():
 	lastInDB=0
-	delayRec=60*15
+	delayRec=60*5 #so aceito registo de 5 em 5 min
 	try:
+		print("Detalhes")
 		radio.printDetails()
 		insertTmpS()
 	except Exception as e:
@@ -188,6 +213,7 @@ def main():
                         print "Muito Seguido"
 #		time.sleep(900) ##tira medicoes de 15 em 15 tirar quando entrar  ardino 
 
-
-main()
-
+try:
+	main()
+except:
+	GPIO.cleanup()
