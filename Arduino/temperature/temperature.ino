@@ -24,9 +24,24 @@
 #define MINUTES_TO_SLEEP 15
 
 
-DS3231 clock;
-RTCDateTime dt;
 
+//for nrf24 debug
+int serial_putc( char c, FILE * ) 
+{
+  Serial.write( c );
+  return c;
+} 
+
+//for nrf24 debug
+void printf_begin(void)
+{
+  fdevopen( &serial_putc, 0 );
+}
+
+//volatile DS3231 clock;
+//volatile RTCDateTime dt;
+ DS3231 clock;
+ RTCDateTime dt;
 
 DHT dht(DHTPIN, DHTTYPE);
 
@@ -50,9 +65,29 @@ void wakeUpFunction() {
   // timers and code using timers (serial.print and more...) will not work here.  
   // we don't really need to execute any special functions here, since we  
   // just want the thing to wake up  
+  noInterrupts();
   Serial.println("wakeUpFunction:Woke up");
+  digitalWrite(MAIN_SWITCH_PIN,HIGH);
+  delay(5000); //5sec to warm up the sensors
   my_main_Func(); //do everything from weatherStation
+  //sleepNow();
   //delay(100);
+  Serial.println("wakeUpFunction:Exit");
+} 
+
+void wakeUpFunction2() {  
+  // execute code here after wake-up before returning to the loop() function  
+  // timers and code using timers (serial.print and more...) will not work here.  
+  // we don't really need to execute any special functions here, since we  
+  // just want the thing to wake up  
+
+  Serial.println("wakeUpFunction2");
+  //digitalWrite(MAIN_SWITCH_PIN,HIGH);
+  //delay(5000); //5sec to warm up the sensors
+  //my_main_Func(); //do everything from weatherStation
+  //sleepNow();
+  delay(1000);
+  //Serial.println("wakeUpFunction:Exit");
 } 
 
  void sleepNow() { 
@@ -60,13 +95,18 @@ void wakeUpFunction() {
     setAlarmNextTime(0);  //the alrm is set to the next 15 min
     set_sleep_mode(SLEEP_MODE_PWR_DOWN);    // sleep mode is set here  
     sleep_enable();                         // enables the sleep bit in the mcucr register  
-    attachInterrupt(digitalPinToInterrupt(WAKE_PIN), wakeUpFunction, CHANGE);   
+    attachInterrupt(digitalPinToInterrupt(WAKE_PIN), wakeUpFunction2, CHANGE);
+    digitalWrite(MAIN_SWITCH_PIN,LOW); //turn sensors off   
     sleep_mode();                           // here the device is actually put to sleep!!  
     // THE PROGRAM CONTINUES FROM HERE AFTER WAKING UP  
     //call the wake funciton
 
+    //exit wake
+    Serial.println("sleepNow after exit wake");
     sleep_disable();         // first thing after waking from sleep: disable sleep...  
     detachInterrupt(digitalPinToInterrupt(WAKE_PIN));      // disables interrupt 0 on pin 2 so the wakeUpNow code will not be executed during normal running time.  
+    interrupts();
+    sleepNow();
 }  
 
 
@@ -100,7 +140,7 @@ float mapfloat(float x, float in_min, float in_max, float out_min, float out_max
 
 void setupRF24(){
   radio.begin();
-  radio.setChannel(0x53); //0x4c
+  radio.setChannel(0x4c);
   radio.setAutoAck(1);
   radio.enableDynamicAck();
   radio.setRetries(15,15);
@@ -111,10 +151,8 @@ void setupRF24(){
   
   radio.openReadingPipe(1,pipes[0]);
   radio.openWritingPipe(pipes[1]);
-  //radio.startListening();
-  //radio.printDetails(); //for Debugging
-  //radio.stopListening();
-  radio.powerDown();
+  radio.printDetails(); //for Debugging
+  //radio.powerDown();
   delay(5);
 }
 
@@ -171,19 +209,24 @@ void setAlarmNextTime(bool firstTime){
 void setupRTC(){
   clock.begin();
   clock.enableOutput(false);
-  setAlarmNextTime(1);
+  //setAlarmNextTime(1);
 
 }
 
 
 void setup() {
   
-  Serial.begin(9600); 
+  Serial.begin(9600);
+
+  pinMode(MAIN_SWITCH_PIN,OUTPUT);
+  digitalWrite(MAIN_SWITCH_PIN,HIGH);
+  delay(10000);
   //sensors
   pinMode(PHOTOPIN, INPUT);
   pinMode(RAINPIN, INPUT);
   pinMode(UVPIN,INPUT);
   pinMode(REF3_3,INPUT);
+ 
 
   //Sensor DHT22
   dht.begin();
@@ -196,8 +239,11 @@ void setup() {
   setupRTC();
   
   // set alarm pin as input and Interrupt
+
   pinMode(WAKE_PIN, INPUT_PULLUP); 
-  attachInterrupt(digitalPinToInterrupt(WAKE_PIN), wakeUpFunction, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(WAKE_PIN), wakeUpFunction2, CHANGE);
+  delay(2000);
+ // wakeUpFunction();
   
 }
 
@@ -297,11 +343,13 @@ void my_main_Func(){ //this is the main where everything is controled
     buildStringSend();
     Serial.print("my_main_Func:SEND: ");
     Serial.println(dataSend);
-    /* for(int c=0;c<TRIES;c++){
+    for(int c=0;c<TRIES;c++){
+        Serial.print("Time: ");
+        Serial.println(c);
         sendData();
         delay(2000); // each try with 2 sec delay
     
-    }*/
+    }
 }
 bool firstTime =1;
 
@@ -309,12 +357,22 @@ void loop() {
   dt = clock.getDateTime();
 
   Serial.println(clock.dateFormat("d-m-Y H:i:s - l", dt));
+  if(firstTime){
+    Serial.println("loop:Entering sleep"); 
+    firstTime=0;
+    sleepNow();
+  }
+   Serial.println("loop:Out"); 
+  delay(20000);
+  //delay(1000); // sleep function called here
+ // sleepNow(); 
   //delay(1000);
   /*if(firstTime){
     Serial.println("1º time");
     my_main_Func(); //take the firsr mesure
     firstTime=0;
-  }*/
+  }
+  
   if (clock.isAlarm1())
   {
     Serial.println("loop:Entering sleep"); 
@@ -323,7 +381,7 @@ void loop() {
   }else{
     Serial.println("loop:not sleep"); 
   }
-  delay(50000);
+  delay(50000);*/
 
 }
 
