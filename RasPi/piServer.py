@@ -32,12 +32,22 @@ stationid = ""
 stationPW = ""
 
 def encode(text):
-	return text.encode('utf-8')
-
+#	return text.encode('utf-8')
+	return text
 def loadJson():
 	dataFile = open(jsonFile,'r')    
     	data = json.load(dataFile)
 	dataFile.close()
+
+        global dbServer
+        global dbUser
+        global dbPassword
+        global dbSchema
+
+
+        global stationid
+        global stationPW
+
 	dbServer=encode(data["db_Server"])
 	dbUser=encode(data["db_User"])
 	dbPassword=encode(data["db_Pw"])
@@ -46,6 +56,7 @@ def loadJson():
 	
 	stationid=encode(data["Station_Id"])
 	stationPW=encode(data["Station_Pw"])
+
 
 
 def log(exception):
@@ -59,12 +70,21 @@ except Exception as e:
         log(e)
         raise(e)
 
+def ptGlobal():
+	print "DB Server: "+ str(dbServer)
+	print "DB User: " + str(dbUser)
+        print "DB PW: "+ str(dbPassword)
+        print "DB Schema: " + str(dbSchema)
+	print "Site User: " + str(stationid)
+	print "Site PW: " + str(stationPW)
+
+
 def uploadRej(time,tempC,humid):
 	temperature= tempC*1.8+32
 	timeI = str(time).split(".")[0]
 	server = "http://rtupdate.wunderground.com"
 
-	path ="/weatherstation/updateweatherstation.php?ID=" + str(stationid) + "&PASSWORD=" + str(password) + "&dateutc=" + str(timeI) + "&tempf=" + str(temperature) +"&humidity="+str(humid)+ "&softwaretype=RaspberryPi&action=updateraw"
+	path ="/weatherstation/updateweatherstation.php?ID=" + str(stationid) + "&PASSWORD=" + str(stationPW) + "&dateutc=" + str(timeI) + "&tempf=" + str(temperature) +"&humidity="+str(humid)+ "&softwaretype=RaspberryPi&action=updateraw"
 	res = requests.get(server+path)
 	if ((int(res.status_code) == 200) & ("success" in res.text)):
 		log("Successful Upload Temperature C=" + str(tempC) + " Humid " + str(humid))
@@ -93,7 +113,6 @@ def setupReciver():
         radioN.startListening()
         return radioN
 
-
 try:
 	radio= setupReciver()
 except Exception as e:
@@ -106,7 +125,7 @@ def insert(date,insideT,outT,outH,outL,outP,outR,outWs,outWd):
 		uploadRej(date,float(outT),float(outH))
 	except Exception as e:
 		log(e)
-
+#	ptGlobal()
 	db = MySQLdb.connect(dbServer,dbUser,dbPassword,dbSchema)
 	cursor = db.cursor()
 	sql = "INSERT INTO Record\n "
@@ -213,6 +232,7 @@ def main():
                         print "Muito Seguido"
 #		time.sleep(900) ##tira medicoes de 15 em 15 tirar quando entrar  ardino 
 
+#while True:
 try:
 	main()
 except:
