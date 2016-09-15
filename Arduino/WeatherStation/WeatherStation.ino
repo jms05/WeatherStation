@@ -30,7 +30,7 @@ float uvlevel;
 //PDU
 char dataSend[40];
 
-
+/*
 int serial_putc( char c, FILE * ) 
 {
   Serial.write( c );
@@ -42,7 +42,7 @@ void printf_begin(void)
 {
   fdevopen( &serial_putc, 0 );
 }
-
+*/
 void setupRF24(){
   radio.begin();
   radio.setChannel(0x4c);
@@ -56,7 +56,7 @@ void setupRF24(){
   
   radio.openReadingPipe(1,pipes[0]);
   radio.openWritingPipe(pipes[1]);
-  radio.printDetails(); //for Debugging
+ // radio.printDetails(); //for Debugging
   //radio.powerDown();
   delay(5);
 }
@@ -73,9 +73,9 @@ void setup_vars(){
 }
 
 void setup() {
-  Serial.begin(9600);
+  //Serial.begin(9600);
   pinMode(MAIN_SWITCH_PIN,OUTPUT);
-  digitalWrite(MAIN_SWITCH_PIN,LOW);
+  //digitalWrite(MAIN_SWITCH_PIN,LOW);
   //sensors
   pinMode(PHOTOPIN, INPUT);
   pinMode(RAINPIN, INPUT);
@@ -84,7 +84,7 @@ void setup() {
   setupRF24();
   //vars
   setup_vars();
-  Serial.println("End Setup");
+ // Serial.println("End Setup");
 }
 
 
@@ -147,7 +147,7 @@ void buildStringSend(){
   +String(uvlevel,2));
   
   data.toCharArray(dataSend,40);
-  Serial.println(dataSend);
+ // Serial.println(dataSend);
 }
 
 //Takes an average of readings on a given pin
@@ -195,12 +195,13 @@ void loop() {
       uvlevel=ERRO_VALUE;
     }
     buildStringSend();
-     radio.startListening();
-    radio.printDetails(); //for Debugging
-    radio.stopListening();
+    //radio.startListening();
+    //radio.printDetails(); //for Debugging
+    //radio.stopListening();
+    digitalWrite(MAIN_SWITCH_PIN,LOW);
     for(int c=0;c<TRIES;c++){
-        Serial.print("Time: ");
-        Serial.println(c);
+        //Serial.print("Time: ");
+        //Serial.println(c);
         sendData();
         delay(2000); // each try with 2 sec delay
     
@@ -212,5 +213,5 @@ void loop() {
   for(int c=0;c<SLEEPCICLE;c++){
     delay(30000);
   }
-
+  delay(1000);
 }
