@@ -14,6 +14,7 @@ GPIO.setmode(GPIO.BCM)
 filename = "TMPRecors.mws"
 filenameLog = "WeatherStation.log"
 
+RF_CH=0x53
 
 jsonFile = "/home/pi/card.json"
 
@@ -98,7 +99,7 @@ def setupReciver():
         radioN.begin(0, 0,25,18) #set gpio 25 as CE pin
         radioN.setRetries(15,15)
         radioN.setPayloadSize(32)
-        radioN.setChannel(0x4c)
+        radioN.setChannel(RF_CH)
         radioN.setDataRate(NRF24.BR_250KBPS)
         radioN.setPALevel(NRF24.PA_MAX)
         radioN.setCRCLength(NRF24.CRC_8);
@@ -141,7 +142,7 @@ def insert(date,insideT,outT,outH,outL,outP,outR,outWs,outWd):
 		db.close()
 		log(e)
 		raise Exception(e)
-
+	log("Inserted at "+ date)
 	
 
 def mesurTemp():
