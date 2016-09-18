@@ -181,7 +181,7 @@ def insertTmpS():
 			str+=data
 			str+="\n"
 	f.close()
-	f = open(fName, "w")
+	f = open(filename, "w")
 	if(not(str is "")):
 		lines = str.split("\n")
 		for line in lines:
