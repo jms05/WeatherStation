@@ -7,8 +7,8 @@
 #define DHTTYPE DHT22   // DHT 22  (AM2302)
 #define PHOTOPIN A1
 #define RAINPIN A0
-#define UVPIN A2
-#define REF3_3 A3
+#define UVPIN A7
+#define REF3_3 A6
 //#define SLEEPCICLE 30 // time to sleep Value * 30 Sec
 #define MIN_SLEEP 15  //minutes to sleep between mesures
 #define TRIES 2    // number of tries to sent one record
@@ -99,13 +99,14 @@ float readAnalogMAP(int pin){
   return pc;
 }
 
-float readUV(){
+void readUV(){
   //https://learn.sparkfun.com/tutorials/ml8511-uv-sensor-hookup-guide
-  int uvLevel = averageAnalogRead(UVPIN);
+  int uvLevelRead = averageAnalogRead(UVPIN);
   int refLevel = averageAnalogRead(REF3_3);
-  float outputVoltage = 3.3 / refLevel * uvLevel;
-  float uvlevel = mapfloat(outputVoltage, 0.99, 2.8, 0.0, 15.0); //Convert the voltage to a UV intensity level
-  return uvlevel;
+
+  float outputVoltage = (3.3 / refLevel )* uvLevelRead;
+  uvlevel = mapfloat(outputVoltage, 0.99, 2.8, 0.0, 15.0); //Convert the voltage to a UV intensity level
+
 }
 /*
 float readRain(){
@@ -148,7 +149,7 @@ void buildStringSend(){
   +String(uvlevel,2));
   
   data.toCharArray(dataSend,40);
- // Serial.println(dataSend);
+  //Serial.println(dataSend);
 }
 
 //Takes an average of readings on a given pin
@@ -178,6 +179,7 @@ void readData(){
   temperature = dht.readTemperature();
   light=readAnalogMAP(PHOTOPIN);
   rain=readAnalogMAP(RAINPIN);
+  readUV();
 }
 void loop() {
   digitalWrite(MAIN_SWITCH_PIN,HIGH); //turn on the sensors
@@ -211,4 +213,6 @@ void loop() {
     delay(2000); // each try with 2 sec delay
   }
   delay(sleepTime);
+ 
+  delay(2000);
 }
