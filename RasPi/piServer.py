@@ -121,7 +121,7 @@ except Exception as e:
 	GPIO.cleanup()
 	raise e
 
-def insert(date,insideT,outT,outH,outL,outP,outR,outWs,outWd):
+def insert(date,insideT,outT,outH,outL,outP,outR,outWs,outWd,UVindex=-1):
 	try:
 		uploadRej(date,float(outT),float(outH))
 	except Exception as e:
@@ -130,9 +130,9 @@ def insert(date,insideT,outT,outH,outL,outP,outR,outWs,outWd):
 	db = MySQLdb.connect(dbServer,dbUser,dbPassword,dbSchema)
 	cursor = db.cursor()
 	sql = "INSERT INTO Record\n "
-	sql+= "(date,inside_Temp,out_Temp,out_Hum,out_Light,out_Press,out_Rain,out_WindS,out_WindD)\n "
+	sql+= "(date,inside_Temp,out_Temp,out_Hum,out_Light,out_Press,out_Rain,out_WindS,out_WindD,UV_Index)\n "
 	sql+= "VALUES\n "
-	sql+="('{0}','{1}','{2}','{3}','{4}','{5}','{6}','{7}','{8}');\n".format(date,insideT,outT,outH,outL,outP,outR,outWs,outWd)
+	sql+="('{0}','{1}','{2}','{3}','{4}','{5}','{6}','{7}','{8}','{9}');\n".format(date,insideT,outT,outH,outL,outP,outR,outWs,outWd,UVindex)
 	try:	
 		cursor.execute(sql)	
 		db.commit()
@@ -151,7 +151,7 @@ def mesurTemp():
 
 
 def reciveFromRemote():
-	#outT,outH,outL,outP,outR,
+	#outT,outH,outL,outP,outR,UV_Index
     	pipe = [0]
 	
 	print "Espera receber"
@@ -175,7 +175,7 @@ def insertTmpS():
 		data = data.replace("\n","")
 		try:
 			campos = data.split(';')
-        	        insert(campos[0],campos[1],campos[2],campos[3],campos[4],campos[5],campos[6],campos[7],campos[8])
+        	        insert(campos[0],campos[1],campos[2],campos[3],campos[4],campos[5],campos[6],campos[7],campos[8],campos[9])
 		except Exception as e:
 			log(e)
 			str+=data
@@ -201,7 +201,7 @@ def storDB(data,NoDB):
 		insertTmpS()
 	try:
 		campos = data.split(';')			
-		insert(date,campos[0],campos[1],campos[2],campos[3],campos[4],campos[5],campos[6],campos[7])
+		insert(date,campos[0],campos[1],campos[2],campos[3],campos[4],campos[5],campos[6],campos[7],campos[8])
 		noDb=False
 	except Exception as e:
 		addTmpRecord(date+";"+data)
