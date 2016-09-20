@@ -121,7 +121,7 @@ except Exception as e:
 	GPIO.cleanup()
 	raise e
 
-def insert(date,insideT,outT,outH,outL,outP,outR,outWs,outWd,UVindex=-1):
+def insert(date,insideT,outT,outH,outL,outP,outR,UVindex,outWs,outWd):
 	try:
 		uploadRej(date,float(outT),float(outH))
 	except Exception as e:
