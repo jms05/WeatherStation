@@ -1,3 +1,6 @@
 *.log
 *.mws
+.DS_Store
+DS_Store
 RasPi/card.json
+
